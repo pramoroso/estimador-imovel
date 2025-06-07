@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -44,7 +43,7 @@
       const cidade = document.getElementById("cidade").value;
       const bairro = document.getElementById("bairro").value;
 
-      const url = `https://SEU_BACKEND.com/buscar-imoveis/?tipo=${tipo}&estado=${estado}&cidade=${cidade}&bairro=${bairro}`;
+      const url = `https://api-estimador-imoveis.onrender.com/buscar-imoveis/?tipo=${tipo}&estado=${estado}&cidade=${cidade}&bairro=${bairro}`;
 
       const res = await fetch(url);
       const data = await res.json();
