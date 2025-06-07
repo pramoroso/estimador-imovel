@@ -1,0 +1,67 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estimador de Imóveis</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4 text-center">Estimador de Imóveis</h1>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <select id="tipo" class="border p-2 rounded">
+        <option value="apartamento">Apartamento</option>
+        <option value="casa">Casa</option>
+      </select>
+      <input id="estado" type="text" placeholder="Estado" class="border p-2 rounded" />
+      <input id="cidade" type="text" placeholder="Cidade" class="border p-2 rounded" />
+      <input id="bairro" type="text" placeholder="Bairro" class="border p-2 rounded" />
+    </div>
+    <button onclick="buscarImoveis()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800">Buscar</button>
+
+    <h2 class="text-xl font-semibold mt-8 mb-2">Resultados</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white border mt-2">
+        <thead class="bg-gray-200">
+          <tr>
+            <th class="border p-2">Área Construída</th>
+            <th class="border p-2">Área Terreno</th>
+            <th class="border p-2">Vagas</th>
+            <th class="border p-2">Valor (R$)</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-resultados"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    async function buscarImoveis() {
+      const tipo = document.getElementById("tipo").value;
+      const estado = document.getElementById("estado").value;
+      const cidade = document.getElementById("cidade").value;
+      const bairro = document.getElementById("bairro").value;
+
+      const url = `https://SEU_BACKEND.com/buscar-imoveis/?tipo=${tipo}&estado=${estado}&cidade=${cidade}&bairro=${bairro}`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+      const tabela = document.getElementById("tabela-resultados");
+      tabela.innerHTML = "";
+
+      data.resultados.forEach(imovel => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class='border p-2'>${imovel.area_construida}</td>
+          <td class='border p-2'>${imovel.area_terreno ?? '-'}</td>
+          <td class='border p-2'>${imovel.vagas}</td>
+          <td class='border p-2'>R$ ${imovel.valor.toLocaleString()}</td>
+        `;
+        tabela.appendChild(row);
+      });
+    }
+  </script>
+</body>
+</html>
