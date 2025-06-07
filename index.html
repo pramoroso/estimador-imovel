@@ -125,7 +125,14 @@
       }
 
       const fatorVagas = 1 + vagas * 0.05; // 5% por vaga
+      
+      if (!isFinite(precoM2Construcao) || precoM2Construcao <= 0) {
+        document.getElementById('resultado_estimativa').innerText = 'Não há dados suficientes para estimar o valor.';
+        return;
+      }
+
       const valor_estimado = valorBase * fatorVagas;
+    
     
       const X = dadosTreinamento.map(d => [1, d[0], d[1], d[2]]);
       const y = dadosTreinamento.map(d => d[3]);
