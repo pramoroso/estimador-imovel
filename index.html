@@ -94,7 +94,14 @@
         return;
       }
 
+      
+      if (dadosTreinamento.length < 3) {
+        document.getElementById('resultado_estimativa').innerText = 'Dados insuficientes para estimativa.';
+        return;
+      }
+
       // Regressão linear múltipla via mínimos quadrados
+    
       const X = dadosTreinamento.map(d => [1, d[0], d[1], d[2]]);
       const y = dadosTreinamento.map(d => d[3]);
 
@@ -104,7 +111,13 @@
 
       const beta = numeric.solve(XtX, Xty); // precisa de biblioteca numeric.js
 
+      
+      if (!beta || beta.some(b => isNaN(b))) {
+        document.getElementById('resultado_estimativa').innerText = 'Não foi possível estimar o valor. Tente com outros dados.';
+        return;
+      }
       const valor_estimado = beta[0] + beta[1]*area + beta[2]*terreno + beta[3]*vagas;
+    
       document.getElementById('resultado_estimativa').innerText = 'Valor estimado: R$ ' + valor_estimado.toLocaleString(undefined, {maximumFractionDigits: 0});
     }
   </script>
