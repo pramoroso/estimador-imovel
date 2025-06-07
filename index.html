@@ -34,9 +34,22 @@
         <tbody id="tabela-resultados"></tbody>
       </table>
     </div>
+
+    <div class="mt-10">
+      <h2 class="text-xl font-semibold mb-2">Simulador de Valor do Imóvel</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <input id="input_area" type="number" placeholder="Área Construída (m²)" class="border p-2 rounded" />
+        <input id="input_terreno" type="number" placeholder="Área Terreno (m²) [opcional]" class="border p-2 rounded" />
+        <input id="input_vagas" type="number" placeholder="Número de Vagas" class="border p-2 rounded" />
+      </div>
+      <button onclick="estimarValor()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-800">Estimar Valor</button>
+      <p class="mt-4 font-semibold" id="resultado_estimativa"></p>
+    </div>
   </div>
 
   <script>
+    let dadosTreinamento = [];
+
     async function buscarImoveis() {
       const tipo = document.getElementById("tipo").value;
       const estado = document.getElementById("estado").value;
@@ -44,11 +57,12 @@
       const bairro = document.getElementById("bairro").value;
 
       const url = `https://api-estimador-imoveis.onrender.com/buscar-imoveis/?tipo=${tipo}&estado=${estado}&cidade=${cidade}&bairro=${bairro}`;
-
       const res = await fetch(url);
       const data = await res.json();
       const tabela = document.getElementById("tabela-resultados");
       tabela.innerHTML = "";
+
+      dadosTreinamento = []; // reset
 
       data.resultados.forEach(imovel => {
         const row = document.createElement("tr");
@@ -59,8 +73,40 @@
           <td class='border p-2'>R$ ${imovel.valor.toLocaleString()}</td>
         `;
         tabela.appendChild(row);
+
+        // armazenar para regressão
+        const area = imovel.area_construida || 0;
+        const terreno = imovel.area_terreno || 0;
+        const vagas = imovel.vagas || 0;
+        const valor = imovel.valor || 0;
+        dadosTreinamento.push([area, terreno, vagas, valor]);
       });
     }
+
+    function estimarValor() {
+      const area = parseFloat(document.getElementById('input_area').value) || 0;
+      const terreno = parseFloat(document.getElementById('input_terreno').value) || 0;
+      const vagas = parseFloat(document.getElementById('input_vagas').value) || 0;
+
+      if (dadosTreinamento.length < 2) {
+        document.getElementById('resultado_estimativa').innerText = 'Por favor, busque imóveis primeiro.';
+        return;
+      }
+
+      // Regressão linear múltipla via mínimos quadrados
+      const X = dadosTreinamento.map(d => [1, d[0], d[1], d[2]]);
+      const y = dadosTreinamento.map(d => d[3]);
+
+      const Xt = X[0].map((_, c) => X.map(r => r[c])); // transposta
+      const XtX = Xt.map(row => row.map((_, j) => row.reduce((sum, val, i) => sum + val * X[i][j], 0)));
+      const Xty = Xt.map(row => row.reduce((sum, val, i) => sum + val * y[i], 0));
+
+      const beta = numeric.solve(XtX, Xty); // precisa de biblioteca numeric.js
+
+      const valor_estimado = beta[0] + beta[1]*area + beta[2]*terreno + beta[3]*vagas;
+      document.getElementById('resultado_estimativa').innerText = 'Valor estimado: R$ ' + valor_estimado.toLocaleString(undefined, {maximumFractionDigits: 0});
+    }
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
 </body>
 </html>
