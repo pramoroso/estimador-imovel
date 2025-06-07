@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Estimador de Imóveis</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-100 p-6">
   <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
@@ -57,49 +57,51 @@
       const bairro = document.getElementById("bairro").value;
 
       const url = `https://api-estimador-imoveis.onrender.com/buscar-imoveis/?tipo=${tipo}&estado=${estado}&cidade=${cidade}&bairro=${bairro}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const tabela = document.getElementById("tabela-resultados");
-      tabela.innerHTML = "";
+      console.log("Chamando URL:", url);
 
-      dadosTreinamento = []; // reset
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const tabela = document.getElementById("tabela-resultados");
+        tabela.innerHTML = "";
+        dadosTreinamento = [];
 
-      data.resultados.forEach(imovel => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td class='border p-2'>${imovel.area_construida}</td>
-          <td class='border p-2'>${imovel.area_terreno ?? '-'}</td>
-          <td class='border p-2'>${imovel.vagas}</td>
-          <td class='border p-2'>R$ ${imovel.valor.toLocaleString()}</td>
-        `;
-        tabela.appendChild(row);
+        data.resultados.forEach(imovel => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td class='border p-2'>${imovel.area_construida}</td>
+            <td class='border p-2'>${imovel.area_terreno ?? '-'}</td>
+            <td class='border p-2'>${imovel.vagas}</td>
+            <td class='border p-2'>R$ ${imovel.valor.toLocaleString()}</td>
+          `;
+          tabela.appendChild(row);
 
-        // armazenar para regressão
-        const area = imovel.area_construida || 0;
-        const terreno = imovel.area_terreno || 0;
-        const vagas = imovel.vagas || 0;
-        const valor = imovel.valor || 0;
-        dadosTreinamento.push([area, terreno, vagas, valor]);
-      });
+          dadosTreinamento.push([
+            imovel.area_construida || 0,
+            imovel.area_terreno || 0,
+            imovel.vagas || 0,
+            imovel.valor || 0
+          ]);
+        });
+
+        console.log("Imóveis recebidos:", dadosTreinamento.length);
+      } catch (error) {
+        console.error("Erro ao buscar imóveis:", error);
+        alert("Erro ao buscar imóveis. Verifique a API ou tente novamente.");
+      }
     }
 
-    
     function estimarValor() {
       const tipo = document.getElementById("tipo").value;
-    
-      const area = parseFloat(document.getElementById('input_area').value) || 0;
-      let terreno_raw = document.getElementById('input_terreno').value;
-      const terreno = terreno_raw === '' ? 0 : parseFloat(terreno_raw);
-      const vagas = parseFloat(document.getElementById('input_vagas').value) || 0;
+      const area = parseFloat(document.getElementById("input_area").value) || 0;
+      const vagas = parseFloat(document.getElementById("input_vagas").value) || 0;
+      const terreno_raw = document.getElementById("input_terreno").value;
+      const terreno = terreno_raw === "" ? 0 : parseFloat(terreno_raw);
 
-      if (dadosTreinamento.length < 2) {
-        document.getElementById('resultado_estimativa').innerText = 'Por favor, busque imóveis primeiro.';
-      return;
+      if (dadosTreinamento.length < 3) {
+        document.getElementById("resultado_estimativa").innerText = "Dados insuficientes para estimativa.";
         return;
       }
-
-
-      // Estimativa por média ponderada (modelo híbrido)
 
       let totalValorConstrucao = 0;
       let totalM2Construcao = 0;
@@ -109,9 +111,8 @@
       dadosTreinamento.forEach(d => {
         totalValorConstrucao += d[3];
         totalM2Construcao += d[0];
-
         if (d[1] > 0) {
-          totalValorTerreno += d[1] * d[3];
+          totalValorTerreno += d[3];
           totalM2Terreno += d[1];
         }
       });
@@ -119,34 +120,21 @@
       const precoM2Construcao = totalValorConstrucao / totalM2Construcao;
       const precoM2Terreno = totalM2Terreno > 0 ? totalValorTerreno / totalM2Terreno : precoM2Construcao * 0.3;
 
-      let valorBase = precoM2Construcao * area;
-      if (tipo === 'casa') {
-        valorBase += precoM2Terreno * terreno;
-      }
-
-      const fatorVagas = 1 + vagas * 0.05; // 5% por vaga
-      
       if (!isFinite(precoM2Construcao) || precoM2Construcao <= 0) {
-        document.getElementById('resultado_estimativa').innerText = 'Não há dados suficientes para estimar o valor.';
+        document.getElementById("resultado_estimativa").innerText = "Não há dados suficientes para estimar o valor.";
         return;
       }
 
+      let valorBase = precoM2Construcao * area;
+      if (tipo === "casa") {
+        valorBase += precoM2Terreno * terreno;
+      }
+
+      const fatorVagas = 1 + vagas * 0.05;
       const valor_estimado = valorBase * fatorVagas;
-    
-    
-      const X = dadosTreinamento.map(d => [1, d[0], d[1], d[2]]);
-      const y = dadosTreinamento.map(d => d[3]);
 
-      const Xt = X[0].map((_, c) => X.map(r => r[c])); // transposta
-      const XtX = Xt.map(row => row.map((_, j) => row.reduce((sum, val, i) => sum + val * X[i][j], 0)));
-      const Xty = Xt.map(row => row.reduce((sum, val, i) => sum + val * y[i], 0));
-
-      const beta = numeric.solve(XtX, Xty); // precisa de biblioteca numeric.js
-
-      const valor_estimado = beta[0] + beta[1]*area + beta[2]*terreno + beta[3]*vagas;
-      document.getElementById('resultado_estimativa').innerText = 'Valor estimado: R$ ' + valor_estimado.toLocaleString(undefined, {maximumFractionDigits: 0});
+      document.getElementById("resultado_estimativa").innerText = "Valor estimado: R$ " + valor_estimado.toLocaleString(undefined, { maximumFractionDigits: 0 });
     }
   </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js"></script>
 </body>
 </html>
