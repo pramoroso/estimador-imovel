@@ -83,7 +83,10 @@
       });
     }
 
+    
     function estimarValor() {
+      const tipo = document.getElementById("tipo").value;
+    
       const area = parseFloat(document.getElementById('input_area').value) || 0;
       let terreno_raw = document.getElementById('input_terreno').value;
       const terreno = terreno_raw === '' ? 0 : parseFloat(terreno_raw);
@@ -91,16 +94,38 @@
 
       if (dadosTreinamento.length < 2) {
         document.getElementById('resultado_estimativa').innerText = 'Por favor, busque imóveis primeiro.';
+      return;
         return;
       }
 
-      
-      if (dadosTreinamento.length < 3) {
-        document.getElementById('resultado_estimativa').innerText = 'Dados insuficientes para estimativa.';
-        return;
+
+      // Estimativa por média ponderada (modelo híbrido)
+
+      let totalValorConstrucao = 0;
+      let totalM2Construcao = 0;
+      let totalValorTerreno = 0;
+      let totalM2Terreno = 0;
+
+      dadosTreinamento.forEach(d => {
+        totalValorConstrucao += d[0] * d[3];
+        totalM2Construcao += d[0];
+
+        if (d[1] > 0) {
+          totalValorTerreno += d[1] * d[3];
+          totalM2Terreno += d[1];
+        }
+      });
+
+      const precoM2Construcao = totalValorConstrucao / totalM2Construcao;
+      const precoM2Terreno = totalM2Terreno > 0 ? totalValorTerreno / totalM2Terreno : precoM2Construcao * 0.3;
+
+      let valorBase = precoM2Construcao * area;
+      if (tipo === 'casa') {
+        valorBase += precoM2Terreno * terreno;
       }
 
-      // Regressão linear múltipla via mínimos quadrados
+      const fatorVagas = 1 + vagas * 0.05; // 5% por vaga
+      const valor_estimado = valorBase * fatorVagas;
     
       const X = dadosTreinamento.map(d => [1, d[0], d[1], d[2]]);
       const y = dadosTreinamento.map(d => d[3]);
@@ -111,13 +136,7 @@
 
       const beta = numeric.solve(XtX, Xty); // precisa de biblioteca numeric.js
 
-      
-      if (!beta || beta.some(b => isNaN(b))) {
-        document.getElementById('resultado_estimativa').innerText = 'Não foi possível estimar o valor. Tente com outros dados.';
-        return;
-      }
       const valor_estimado = beta[0] + beta[1]*area + beta[2]*terreno + beta[3]*vagas;
-    
       document.getElementById('resultado_estimativa').innerText = 'Valor estimado: R$ ' + valor_estimado.toLocaleString(undefined, {maximumFractionDigits: 0});
     }
   </script>
