@@ -50,10 +50,7 @@
   <script>
     let dadosTreinamento = [];
 
-    
     async function buscarImoveis() {
-      const tipo = document.getElementById("tipo").value;
-    
       const tipo = document.getElementById("tipo").value;
       const estado = document.getElementById("estado").value;
       const cidade = document.getElementById("cidade").value;
@@ -110,7 +107,7 @@
       let totalM2Terreno = 0;
 
       dadosTreinamento.forEach(d => {
-        totalValorConstrucao += d[0] * d[3];
+        totalValorConstrucao += d[3];
         totalM2Construcao += d[0];
 
         if (d[1] > 0) {
