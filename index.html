@@ -85,7 +85,8 @@
 
     function estimarValor() {
       const area = parseFloat(document.getElementById('input_area').value) || 0;
-      const terreno = parseFloat(document.getElementById('input_terreno').value) || 0;
+      let terreno_raw = document.getElementById('input_terreno').value;
+      const terreno = terreno_raw === '' ? 0 : parseFloat(terreno_raw);
       const vagas = parseFloat(document.getElementById('input_vagas').value) || 0;
 
       if (dadosTreinamento.length < 2) {
